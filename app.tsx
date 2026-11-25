@@ -883,7 +883,7 @@ function RunDetailView({
                 <ul className="divide-y divide-border/50 rounded-md border border-border/60">
                   {query.data.run.stages.map((stage, index) => (
                     <li
-                      key={`${query.data.run.id}-stage-${index}`}
+                      key={`${buildId}-stage-${index}`}
                       className="flex items-center justify-between gap-3 px-2.5 py-2 text-xs"
                     >
                       <span className="flex min-w-0 items-center gap-2">

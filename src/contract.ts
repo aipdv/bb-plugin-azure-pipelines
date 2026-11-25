@@ -1,4 +1,4 @@
-import { defineRpcContract } from "@get-bb/plugin-sdk";
+import type { PluginRpcContract } from "@get-bb/plugin-sdk/app";
 import { z } from "zod";
 
 const stageSchema = z
@@ -161,7 +161,7 @@ export const runDetailResultSchema = z.discriminatedUnion("status", [
     .strict(),
 ]);
 
-export const rpcContract = defineRpcContract({
+export const rpcContract = {
   status: {
     input: z.object({ environmentId: z.string().min(1).nullable() }).strict(),
     output: statusResultSchema,
@@ -201,4 +201,4 @@ export const rpcContract = defineRpcContract({
       })
       .strict(),
   },
-});
+} as const satisfies PluginRpcContract;
