@@ -1,5 +1,6 @@
 import { access } from "node:fs/promises";
 import { execFile } from "node:child_process";
+import { join } from "node:path";
 
 export interface AzDefaults {
   organization: string;
@@ -78,11 +79,11 @@ export async function readAzDefaults(
 }
 
 export const runAz: AzRunner = async (args, signal) => {
-  const bin = await azBin();
+  const [bin, prefix] = await azCommand();
   return new Promise((resolve, reject) => {
     execFile(
       bin,
-      [...args],
+      [...prefix, ...args],
       { signal, timeout: 15_000, maxBuffer: 1_000_000 },
       (error, stdout, stderr) => {
         if (error && "code" in error && error.code === "ENOENT") {
@@ -125,14 +126,22 @@ function redact(text: string): string {
   return text.replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, "[token]");
 }
 
-async function azBin(): Promise<string> {
-  for (const candidate of ["/opt/homebrew/bin/az", "/usr/local/bin/az"]) {
+export function azCandidates(platform: string, env: NodeJS.ProcessEnv): [string, string[]][] {
+  if (platform !== "win32") return [["/opt/homebrew/bin/az", []], ["/usr/local/bin/az", []]];
+  // Windows az is az.cmd, which execFile cannot run; call the CLI's bundled python the way az.cmd does.
+  return [env.ProgramFiles, env["ProgramFiles(x86)"]]
+    .filter((dir): dir is string => Boolean(dir))
+    .map((dir) => [join(dir, "Microsoft SDKs", "Azure", "CLI2", "python.exe"), ["-IBm", "azure.cli"]]);
+}
+
+async function azCommand(): Promise<[string, string[]]> {
+  for (const candidate of azCandidates(process.platform, process.env)) {
     try {
-      await access(candidate);
+      await access(candidate[0]);
       return candidate;
     } catch {
       // Try the next install path.
     }
   }
-  return "az";
+  return ["az", []];
 }
